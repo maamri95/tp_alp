@@ -2,15 +2,22 @@ import numpy as np
 from mpi4py import MPI
 
 COMM = MPI.COMM_WORLD
-SIZE = COMM.Get_size()
-RANK = COMM.Get_rank()
-send = COMM.send
-recv = COMM.recv
-scatter = COMM.scatter
-gather = COMM.gather
+SIZE = COMM.Get_size()  # numbre de processus
+RANK = COMM.Get_rank()  # le processus actif
+send = COMM.send  # fonction d'envoi
+recv = COMM.recv  # fonction de reception
+scatter = COMM.scatter  # fonction permetant de diffuse le tableau
+gather = COMM.gather  # fonction qui permet de rassemble les resultat
 
 
 def echange_min(me, tab):
+    """
+        recupere le n min des valeurs entre le la partie de process RANK et le process me,
+        n etant la taille de la partie de RANK
+        :param me: process adjacent a RANK
+        :param tab: partie de process RANK
+        :return: la nouvelle partie de process RANK
+    """
     if SIZE > me >= 0:
         data = recv(source=me)
         tab2 = data["tab2"]
@@ -24,6 +31,13 @@ def echange_min(me, tab):
 
 
 def echange_max(me, tab):
+    """
+    recupere le n max des valeurs entre le la partie de process RANK et le process me,
+    n etant la taille de la partie de RANK
+    :param me: process adjacent a RANK
+    :param tab: partie de process RANK
+    :return: la nouvelle partie de process RANK
+    """
     if SIZE > me >= 0:
         data = {"tab2": tab}
         send(data, dest=me)
@@ -37,6 +51,10 @@ def echange_max(me, tab):
 
 
 def sort():
+    """
+    tri a bulle parallele
+    :return: affiche le tableau trie
+    """
     if RANK == 0:
         numbers = np.genfromtxt("array.csv", delimiter=",")
         tabs = np.array_split(numbers, SIZE)
