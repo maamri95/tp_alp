@@ -18,16 +18,16 @@ def echange_min(me, tab):
         :param tab: partie de process RANK
         :return: la nouvelle partie de process RANK
     """
-    if SIZE > me >= 0:
-        data = recv(source=me)
-        tab2 = data["tab2"]
-        data = {"tab2": tab}
-        send(data, dest=me)
-        z = np.concatenate((tab, tab2))
-        z.sort()
-        n = tab.size
-        return z[:n]
-    return tab
+    if not (SIZE > me >= 0):
+        return tab
+    data = recv(source=me)
+    tab2 = data["tab2"]
+    data = {"tab2": tab}
+    send(data, dest=me)
+    z = np.concatenate((tab, tab2))
+    z.sort()
+    n = tab.size
+    return z[:n]
 
 
 def echange_max(me, tab):
@@ -38,16 +38,16 @@ def echange_max(me, tab):
     :param tab: partie de process RANK
     :return: la nouvelle partie de process RANK
     """
-    if SIZE > me >= 0:
-        data = {"tab2": tab}
-        send(data, dest=me)
-        data = recv(source=me)
-        tab2 = data["tab2"]
-        z = np.concatenate((tab, tab2))
-        z.sort()
-        n = tab.size
-        return z[z.size - n:]
-    return tab
+    if not (SIZE > me >= 0):
+        return tab
+    data = {"tab2": tab}
+    send(data, dest=me)
+    data = recv(source=me)
+    tab2 = data["tab2"]
+    z = np.concatenate((tab, tab2))
+    z.sort()
+    n = tab.size
+    return z[z.size - n:]
 
 
 def sort():
@@ -55,13 +55,14 @@ def sort():
     tri a bulle parallele
     :return: affiche le tableau trie
     """
-    if RANK == 0:
+    root = SIZE - 1  # processus principale
+    if RANK == root:
         numbers = np.genfromtxt("array.csv", delimiter=",")
         tabs = np.array_split(numbers, SIZE)
         print("tableau non trie ==> ", numbers)
     else:
         tabs = None
-    tab = scatter(tabs, root=0)
+    tab = scatter(tabs, root=root)
     tab.sort()
     for e in range(SIZE):
         if e % 2 == 0:
@@ -74,12 +75,9 @@ def sort():
                 tab = echange_max(RANK - 1, tab)
             else:
                 tab = echange_min(RANK + 1, tab)
-    array = gather(tab, root=0)
-    if RANK == 0:
-        tableau = []
-        for i in range(len(array)):
-            tableau.extend(array[i].tolist())
-        print("tableau apres tri ==> ", np.array(tableau))
+    array = gather(tab, root=root)
+    if RANK == root:
+        print("tableau apres tri ==> ", np.array(np.concatenate(array)))
 
 
 if __name__ == '__main__':
