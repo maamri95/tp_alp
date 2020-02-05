@@ -6,8 +6,6 @@ SIZE = COMM.Get_size()  # numbre de processus
 RANK = COMM.Get_rank()  # le processus actif
 send = COMM.send  # fonction d'envoi
 recv = COMM.recv  # fonction de reception
-scatter = COMM.scatter  # fonction permetant de diffuse le tableau
-gather = COMM.gather  # fonction qui permet de rassemble les resultat
 
 
 def echange_min(me, tab):
@@ -55,14 +53,17 @@ def sort():
     tri a bulle parallele
     :return: affiche le tableau trie
     """
-    root = SIZE - 1  # processus principale
+    root = 0  # processus principale
     if RANK == root:
         numbers = np.genfromtxt("array.csv", delimiter=",")
         tabs = np.array_split(numbers, SIZE)
-        print("tableau non trie ==> ", numbers)
+        for i in range(1, SIZE):
+            data = {"tab": tabs[i]}
+            send(data, dest=i)
+        tab = tabs[root]
     else:
-        tabs = None
-    tab = scatter(tabs, root=root)
+        data = recv(source=root)
+        tab = data["tab"]
     tab.sort()
     for e in range(SIZE):
         if e % 2 == 0:
@@ -75,9 +76,18 @@ def sort():
                 tab = echange_max(RANK - 1, tab)
             else:
                 tab = echange_min(RANK + 1, tab)
-    array = gather(tab, root=root)
     if RANK == root:
-        print("tableau apres tri ==> ", np.array(np.concatenate(array)))
+        array = list(tab)
+    for i in range(1, SIZE):
+        if RANK == root:
+            data = recv(source=i)
+            array.extend(list(data["tab"]))
+        else:
+            data = {"tab": tab}
+            send(data, dest=root)
+    if RANK == root:
+        print("tableau non trie ==> ", numbers)
+        print("tableau apres tri ==> ", np.array(array))
 
 
 if __name__ == '__main__':
